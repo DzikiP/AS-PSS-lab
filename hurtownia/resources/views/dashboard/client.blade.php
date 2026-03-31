@@ -20,7 +20,6 @@
                 </div>
             </div>
 
-            {{-- Statystyki --}}
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div class="bg-white shadow-sm sm:rounded-lg p-6 text-center">
                     <h3 class="text-lg font-semibold">Twoje zamówienia</h3>
@@ -39,7 +38,6 @@
                 </div>
             </div>
 
-            {{-- Dostępne produkty --}}
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 mt-6">
                 <h2 class="text-xl font-bold mb-4">Dostępne produkty</h2>
 
@@ -64,6 +62,9 @@
                             @endforeach
                         </tbody>
                     </table>
+                    <div class="mt-4 flex justify-center">
+                        {{ $products->links() }}
+                    </div>
                 @endif
             </div>
 

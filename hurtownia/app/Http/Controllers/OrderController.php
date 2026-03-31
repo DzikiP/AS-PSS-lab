@@ -41,7 +41,7 @@ class OrderController extends Controller
         $direction = $request->query('direction') === 'asc' ? 'asc' : 'desc';
         $query->orderBy($sort, $direction);
 
-        $orders = $query->paginate(10)->withQueryString();
+        $orders = $query->simplePaginate(5)->withQueryString();
         $statuses = OrderStatus::all();
 
         return view('orders.my', compact('orders', 'statuses'));
@@ -111,6 +111,7 @@ class OrderController extends Controller
             $order = Order::create([
                 'client_id' => $request->user()->id,
                 'status_id' => $status->id,
+                'total_price' => $totalPrice,
             ]);
 
             foreach ($productsData as $productId => $data) {

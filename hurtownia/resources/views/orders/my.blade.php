@@ -8,7 +8,6 @@
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
-            <!-- Filtry i wyszukiwanie -->
             <form method="GET" action="{{ route('orders.my') }}" class="mb-4 flex gap-2 flex-wrap">
                 <input type="text" name="search" value="{{ request('search') }}" placeholder="Szukaj po ID" class="border px-3 py-1 rounded flex-1">
                 
@@ -69,7 +68,7 @@
                 </table>
 
                 <div class="mt-4">
-                    {{ $orders->withQueryString()->links() }}
+                    {{ $orders->links() }}
                 </div>
 
                 <div class="mt-4">

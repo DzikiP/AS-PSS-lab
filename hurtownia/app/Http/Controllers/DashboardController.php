@@ -28,7 +28,7 @@ class DashboardController extends Controller
                 'pendingOrdersCount' => $user->orders()
                     ->whereHas('status', fn($q) => $q->where('name', 'w trakcie realizacji'))
                     ->count(),
-                'products' => Product::all(),
+                'products' => Product::orderBy('id', 'desc')->paginate(5),
             ]),
             default => abort(403),
         };
