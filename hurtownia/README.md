@@ -1,0 +1,1 @@
+dodano stronnicowanie w widoku klienta
