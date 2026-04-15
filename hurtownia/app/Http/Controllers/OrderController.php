@@ -15,11 +15,24 @@ class OrderController extends Controller
         $sort = $request->query('sort', 'name');
         $direction = $request->query('direction', 'asc');
 
-        $products = Product::when($search, fn($q) => $q->where('name', 'like', "%{$search}%")
-            ->orWhere('description', 'like', "%{$search}%"))
+        $products = Product::when(
+            $search,
+            fn($q) =>
+            $q->where('name', 'like', "%{$search}%")
+                ->orWhere('description', 'like', "%{$search}%")
+        )
             ->orderBy($sort, $direction)
             ->paginate(10)
             ->withQueryString();
+
+        if ($request->ajax()) {
+            return response()->json([
+                'products' => view('components.order-products', [
+                    'products' => $products,
+                    'mode' => 'edit'
+                ])->render()
+            ]);
+        }
 
         return view('orders.create', compact('products', 'search', 'sort', 'direction'));
     }
@@ -43,6 +56,13 @@ class OrderController extends Controller
 
         $orders = $query->simplePaginate(5)->withQueryString();
         $statuses = OrderStatus::all();
+
+        if ($request->ajax()) {
+            return response()->json([
+                'table' => view('orders.partials.orders_table', compact('orders'))->render(),
+                'pagination' => view('orders.partials.pagination', compact('orders'))->render()
+            ]);
+        }
 
         return view('orders.my', compact('orders', 'statuses'));
     }
@@ -115,7 +135,10 @@ class OrderController extends Controller
             ]);
 
             foreach ($productsData as $productId => $data) {
-                $order->products()->attach($productId, ['quantity' => $data['quantity'], 'price' => $data['price']]);
+                $order->products()->attach($productId, [
+                    'quantity' => $data['quantity'],
+                    'price' => $data['price']
+                ]);
             }
 
             return redirect()->route('orders.my')->with('success', 'Zamówienie zostało złożone.');
@@ -125,7 +148,6 @@ class OrderController extends Controller
 
         return view('orders.confirm', compact('products', 'productsData', 'totalPrice'));
     }
-
 
     public function updateStatus(Request $request, Order $order)
     {

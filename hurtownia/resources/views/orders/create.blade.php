@@ -1,18 +1,23 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Nowe zamówienie</h2>
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+            Nowe zamówienie
+        </h2>
     </x-slot>
 
     <div class="py-6">
         <div class="max-w-4xl mx-auto bg-white p-6 shadow rounded overflow-x-auto">
-            
-            <form method="GET" action="{{ route('orders.create') }}" class="mb-4 flex gap-2 flex-wrap">
-                <input type="text" name="search" placeholder="Szukaj produktu..." value="{{ $search ?? '' }}" class="border rounded px-3 py-1 flex-1">
-                <button type="submit" class="bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700">Szukaj</button>
-            </form>
+
+            <div class="mb-4 flex gap-2">
+                <input type="text"
+                       id="search"
+                       placeholder="Szukaj produktu..."
+                       class="border rounded px-3 py-1 flex-1">
+            </div>
 
             <form method="POST" action="{{ route('orders.store') }}" id="orderForm">
                 @csrf
+
                 <table class="w-full border-collapse table-fixed">
                     <thead>
                         <tr class="border-b">
@@ -23,53 +28,103 @@
                             <th class="w-1/6 text-left py-2">Suma</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        @foreach($products as $product)
-                            <tr class="border-b">
-                                <td class="py-2">{{ $product->name }}</td>
-                                <td class="py-2">{{ number_format($product->price,2) }} zł</td>
-                                <td class="py-2">
-                                    <input type="number" name="products[{{ $product->id }}]" data-price="{{ $product->price }}" value="0" min="0" class="quantity w-20 border rounded px-2 py-1">
-                                </td>
-                                <td class="py-2">{{ $product->unit }}</td>
-                                <td class="py-2 sum">0 zł</td>
-                            </tr>
-                        @endforeach
+
+                    <tbody id="products-container">
+                        <x-order-products
+                            :products="$products"
+                            mode="edit"
+                        />
                     </tbody>
+
                     <tfoot>
                         <tr>
-                            <td colspan="4" class="text-right font-bold py-2">Łącznie:</td>
-                            <td id="totalPrice" class="font-bold py-2">0 zł</td>
+                            <td colspan="4" class="text-right font-bold py-2">
+                                Łącznie:
+                            </td>
+                            <td id="totalPrice" class="font-bold py-2">
+                                0 zł
+                            </td>
                         </tr>
                     </tfoot>
                 </table>
 
                 <div class="mt-6 flex justify-end gap-2">
-                    <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                    <button type="submit"
+                            class="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
                         Podsumuj zamówienie
                     </button>
                 </div>
             </form>
+
         </div>
     </div>
 
     <script>
-        const quantities = document.querySelectorAll('.quantity');
-        const totalPriceEl = document.getElementById('totalPrice');
+        let state = {
+            search: ''
+        };
 
-        function updateSums() {
-            let total = 0;
-            quantities.forEach(input => {
-                const price = parseFloat(input.dataset.price);
-                const quantity = parseInt(input.value) || 0;
-                const sum = price * quantity;
-                input.closest('tr').querySelector('.sum').innerText = sum.toFixed(2)+' zł';
-                total += sum;
-            });
-            totalPriceEl.innerText = total.toFixed(2)+' zł';
+        function debounce(fn, delay = 300) {
+            let t;
+            return (...args) => {
+                clearTimeout(t);
+                t = setTimeout(() => fn(...args), delay);
+            };
         }
 
-        quantities.forEach(input => input.addEventListener('input', updateSums));
-        updateSums();
+        function loadProducts() {
+            fetch(`/orders/create?search=${state.search}`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('products-container').innerHTML = data.products;
+
+                rebindQuantities();
+            });
+        }
+
+        const handleSearch = debounce(() => {
+            state.search = document.getElementById('search').value;
+            loadProducts();
+        }, 300);
+
+        document.getElementById('search')
+            .addEventListener('input', handleSearch);
+
+        function updateSums() {
+            const inputs = document.querySelectorAll('.quantity');
+            let total = 0;
+
+            inputs.forEach(input => {
+                const price = parseFloat(input.dataset.price);
+                const qty = parseInt(input.value) || 0;
+
+                const sum = price * qty;
+
+                input.closest('tr')
+                    .querySelector('.sum')
+                    .innerText = sum.toFixed(2) + ' zł';
+
+                total += sum;
+            });
+
+            document.getElementById('totalPrice')
+                .innerText = total.toFixed(2) + ' zł';
+        }
+
+        function rebindQuantities() {
+            const inputs = document.querySelectorAll('.quantity');
+
+            inputs.forEach(input => {
+                input.addEventListener('input', updateSums);
+            });
+
+            updateSums();
+        }
+
+        rebindQuantities();
     </script>
 </x-app-layout>

@@ -30,6 +30,8 @@
             <!-- Page Content -->
             <main>
                 {{ $slot }}
+
+                @livewireScripts
             </main>
         </div>
     </body>

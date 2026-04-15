@@ -22,28 +22,19 @@
                             <th class="text-left py-2">Suma</th>
                         </tr>
                     </thead>
+
                     <tbody>
-                        @php $total = 0; @endphp
-                        @foreach ($products as $product)
-                            @php
-                                $qty = $productsData[$product->id]['quantity'];
-                                $sum = $qty * $product->price;
-                                $total += $sum;
-                            @endphp
-                            <tr class="border-b">
-                                <td class="py-2">{{ $product->name }}</td>
-                                <td class="py-2">{{ number_format($product->price, 2) }} zł</td>
-                                <td class="py-2">{{ $qty }}</td>
-                                <td class="py-2">{{ $product->unit }}</td>
-                                <td class="py-2">{{ number_format($sum, 2) }} zł</td>
-                                <input type="hidden" name="products[{{ $product->id }}]" value="{{ $qty }}">
-                            </tr>
-                        @endforeach
+                        <x-order-products
+                            :products="$products"
+                            mode="readonly"
+                            :productsData="$productsData"
+                        />
                     </tbody>
+
                     <tfoot>
                         <tr>
                             <td colspan="4" class="text-right font-bold py-2">Łącznie:</td>
-                            <td class="font-bold py-2">{{ number_format($total, 2) }} zł</td>
+                            <td class="font-bold py-2">{{ number_format($totalPrice, 2) }} zł</td>
                         </tr>
                     </tfoot>
                 </table>

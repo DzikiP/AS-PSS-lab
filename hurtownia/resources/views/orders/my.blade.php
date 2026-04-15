@@ -8,67 +8,49 @@
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
-            <form method="GET" action="{{ route('orders.my') }}" class="mb-4 flex gap-2 flex-wrap">
-                <input type="text" name="search" value="{{ request('search') }}" placeholder="Szukaj po ID" class="border px-3 py-1 rounded flex-1">
+            <div class="mb-4 flex gap-2 flex-wrap">
+                <input type="text" id="search" placeholder="Szukaj po ID" class="border px-3 py-1 rounded flex-1">
                 
-                <select name="status" onchange="this.form.submit()" class="border px-3 py-1 rounded">
+                <select id="status" class="border px-3 py-1 rounded">
                     <option value="">Wszystkie statusy</option>
                     @foreach($statuses as $status)
-                        <option value="{{ $status->id }}" @selected(request('status') == $status->id)>{{ $status->name }}</option>
+                        <option value="{{ $status->id }}">{{ $status->name }}</option>
                     @endforeach
                 </select>
-
-                <button type="submit" class="px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">Filtruj</button>
-            </form>
+            </div>
 
             <div class="bg-white shadow-sm sm:rounded-lg overflow-x-auto p-6">
                 <table class="min-w-full table-fixed border border-gray-300">
-                    <thead class="bg-gray-100">
-                        @php
-                            $columns = ['id'=>'ID','status'=>'Status','created_at'=>'Data'];
-                            $currentSort = request('sort','created_at');
-                            $currentDirection = request('direction','desc');
-                        @endphp
-                        <tr>
-                            @foreach($columns as $key=>$label)
-                                <th class="px-4 py-2 border w-1/6">
-                                    @if($key==='status')
-                                        {{ $label }}
-                                    @else
-                                        <a href="{{ route('orders.my', array_merge(request()->query(), ['sort'=>$key,'direction'=>($currentSort===$key && $currentDirection==='asc')?'desc':'asc'])) }}">
-                                            {{ $label }}
-                                            @if($currentSort === $key)
-                                                {{ $currentDirection==='asc'?'↑':'↓' }}
-                                            @endif
-                                        </a>
-                                    @endif
-                                </th>
-                            @endforeach
-                            <th class="px-4 py-2 border w-1/4">Produkty</th>
-                            <th class="px-4 py-2 border w-1/6">Suma</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($orders as $order)
-                            <tr>
-                                <td class="px-4 py-2 border truncate" title="{{ $order->id }}">{{ $order->id }}</td>
-                                <td class="px-4 py-2 border truncate" title="{{ $order->status->name }}">{{ $order->status->name }}</td>
-                                <td class="px-4 py-2 border truncate" title="{{ $order->created_at }}">{{ $order->created_at->format('Y-m-d H:i') }}</td>
-                                <td class="px-4 py-2 border">
-                                    <ul class="list-disc pl-5">
-                                        @foreach($order->products as $product)
-                                            <li class="truncate" title="{{ $product->name }}">{{ $product->name }} ({{ $product->pivot->quantity }})</li>
-                                        @endforeach
-                                    </ul>
-                                </td>
-                                <td class="px-4 py-2 border truncate">{{ number_format($order->total_price,2) }} zł</td>
-                            </tr>
-                        @endforeach
+                <thead class="bg-gray-100">
+                    <tr>
+                        <th class="px-4 py-2 border">
+                            <button onclick="changeSort('id')">
+                                ID <span id="sort-id"></span>
+                            </button>
+                        </th>
+
+                        <th class="px-4 py-2 border">
+                            Status
+                        </th>
+
+                        <th class="px-4 py-2 border">
+                            <button onclick="changeSort('created_at')">
+                                Data <span id="sort-created_at"></span>
+                            </button>
+                        </th>
+
+                        <th class="px-4 py-2 border">Produkty</th>
+                        <th class="px-4 py-2 border">Suma</th>
+                    </tr>
+                </thead>
+
+                    <tbody id="orders-table">
+                        @include('orders.partials.orders_table')
                     </tbody>
                 </table>
 
-                <div class="mt-4">
-                    {{ $orders->links() }}
+                <div class="mt-4" id="pagination">
+                    @include('orders.partials.pagination')
                 </div>
 
                 <div class="mt-4">
@@ -79,4 +61,92 @@
             </div>
         </div>
     </div>
+
+<script>
+let state = {
+    page: 1,
+    search: '',
+    status: '',
+    sort: 'id',
+    direction: 'asc'
+};
+
+function debounce(fn, delay = 400) {
+    let timer;
+    return (...args) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn(...args), delay);
+    };
+}
+
+function loadOrders() {
+
+    let params = new URLSearchParams({
+        page: state.page,
+        search: state.search,
+        status: state.status,
+        sort: state.sort,
+        direction: state.direction
+    });
+
+    fetch("{{ route('orders.my') }}?" + params.toString(), {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById('orders-table').innerHTML = data.table;
+        document.getElementById('pagination').innerHTML = data.pagination;
+
+        updateSortIcons();
+    });
+}
+
+function changeSort(column) {
+    if (state.sort === column) {
+        state.direction = state.direction === 'asc' ? 'desc' : 'asc';
+    } else {
+        state.sort = column;
+        state.direction = 'asc';
+    }
+
+    state.page = 1;
+    loadOrders();
+}
+
+document.addEventListener('click', function(e) {
+    if (e.target.closest('#pagination a')) {
+        e.preventDefault();
+
+        let url = new URL(e.target.closest('a').href);
+        state.page = url.searchParams.get('page');
+
+        loadOrders();
+    }
+});
+
+const handleFilters = debounce(() => {
+    state.search = document.getElementById('search').value;
+    state.status = document.getElementById('status').value;
+    state.page = 1;
+
+    loadOrders();
+}, 400);
+
+document.getElementById('search').addEventListener('input', handleFilters);
+document.getElementById('status').addEventListener('change', handleFilters);
+
+function updateSortIcons() {
+    document.getElementById('sort-id').innerHTML = '';
+    document.getElementById('sort-created_at').innerHTML = '';
+
+    let arrow = state.direction === 'asc' ? '↑' : '↓';
+    document.getElementById('sort-' + state.sort).innerHTML = arrow;
+}
+
+loadOrders();
+
+</script>
+
 </x-app-layout>
