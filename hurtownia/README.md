@@ -6,3 +6,6 @@
 3. Dodano stronnicowanie w widokach: 
 - resources/views/orders/my.blade.php
 - resources/views/dashboard/client.blade.php
+4. Zrobiono AJAX w widokach klienta:
+- resources/views/orders/my.blade.php
+- resources/views/orders/create.blade.php
